@@ -63,15 +63,15 @@ func (repo *ProductRepository) GetById(id int) (*models.Product, error) {
 
 func (repo *ProductRepository) Update(product *models.Product) error {
 	query := "UPDATE products SET name = $1, price = $2, stock = $3 WHERE id = $4"
-	result, err := repo.db.Exec(query, product.name, product.Price, product.Stock, product.ID)
+	result, err := repo.db.Exec(query, product.Name, product.Price, product.Stock, product.ID)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if rows == 0 {
