@@ -5,6 +5,8 @@ import (
 	"kasir-api/models"
 	"kasir-api/services"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 type ProductHandler struct {
@@ -21,6 +23,19 @@ func (h *ProductHandler) HandleProducts(w http.ResponseWriter, r *http.Request) 
 		h.GetAll(w, r)
 	case http.MethodPost:
 		h.Create(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *ProductHandler) HandleProductById(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		h.GetById(w, r)
+	case http.MethodPut:
+		h.Update(w, r)
+	case http.MethodDelete:
+		h.Delete(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -53,6 +68,25 @@ func (h *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(product)
+
+}
+
+func (h *ProductHandler) GetById(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/api/produk/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid product Id", http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.service.GetById(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(product)
 
 }
