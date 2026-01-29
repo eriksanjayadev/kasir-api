@@ -61,7 +61,7 @@ func main() {
 
 	fmt.Println("Server is running on http://localhost:" + config.Port)
 
-	err = http.ListenAndServe(":"+config.Port, nil)
+	err = http.ListenAndServe("0.0.0.0:"+config.Port, nil)
 
 	if err != nil {
 		fmt.Println("Server failed to start")
