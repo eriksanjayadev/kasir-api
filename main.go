@@ -3,10 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"strconv"
-	"strings"
 	"kasir-api/database"
+	"kasir-api/handlers"
+	"kasir-api/repositories"
+	"kasir-api/services"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+
+	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -14,46 +20,48 @@ type Config struct {
 	DBConn string `mapstructure:"DB_CONN"`
 }
 
-config := Config{
-	Port: viper.GetString("PORT")
-	DBConn: viper.GetString("DB_CONN")
-}
-
-
-db, err := database.InitDB(config.DBConn)
-if err != nil {
-	log.Fatal("Failed to initialize database: ", err)
-}
-
-defer db.close()
-
-func JSONError(w http.ResponseWriter, status int, message string) {
-	w.Header().Set("Content-Type", "Application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]any{
-		"message": message,
-	})
-}
-
-func JSON(w http.ResponseWriter, status int, data any) {
-	w.Header().Set("Content-Type", "Application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
-}
-
-func getCategories(w http.ResponseWriter) {
-	JSON(w, http.StatusContinue, categories)
-}
-
-func getProducts(w http.ResponseWriter) {
-	JSON(w, http.StatusContinue, produk)
-}
-
 func main() {
 
-	fmt.Println("Server is running on http://localhost:8080")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	err := http.ListenAndServe(":8080", nil)
+	if _, err := os.Stat(".env"); err == nil {
+		viper.SetConfigFile(".env")
+		_ = viper.ReadInConfig()
+	}
+
+	config := Config{
+		Port:   viper.GetString("PORT"),
+		DBConn: viper.GetString("DB_CONN"),
+	}
+
+	// init database
+	db, err := database.InitDB(config.DBConn)
+	if err != nil {
+		log.Fatal("Failed to initialize database: ", err)
+	}
+
+	defer db.Close()
+
+	productRepo := repositories.NewProductRepository(db)
+	productService := services.NewProductService(productRepo)
+	productHandler := handlers.NewProductHandler(productService)
+
+	// routes
+	http.HandleFunc("/api/produk", productHandler.HandleProducts)
+	http.HandleFunc("/api/produk/", productHandler.HandleProductById)
+
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "OK",
+			"message": "API Running",
+		})
+	})
+
+	fmt.Println("Server is running on http://localhost:" + config.Port)
+
+	err = http.ListenAndServe(":"+config.Port, nil)
 
 	if err != nil {
 		fmt.Println("Server failed to start")
