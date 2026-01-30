@@ -127,7 +127,7 @@ kasir-api/
 
 ### 1️⃣ Get All Products
 
-**GET** `/produk`
+**GET** `/api/produk`
 
 **Response 200**
 
@@ -148,7 +148,7 @@ kasir-api/
 
 ### 2️⃣ Create Product
 
-**POST** `/produk`
+**POST** `/api/produk`
 
 **Request Body**
 
